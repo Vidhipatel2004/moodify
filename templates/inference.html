@@ -1,0 +1,62 @@
+<!-- inference.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion Detection</title>
+</head>
+<body>
+    <div id="video-container">
+        <video id="video" playsinline autoplay></video>
+        <button id="capture-btn">Capture Face</button>
+        <div id="prediction"></div>
+    </div>
+    <script>
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture-btn');
+        const predictionDiv = document.getElementById('prediction');
+
+        // Function to start camera
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        }
+
+        // Function to stop camera
+        function stopCamera() {
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+        }
+
+        // Function to capture face and perform inference
+        async function captureFace() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/jpeg');
+            
+            // Send a POST request to Flask server to capture face and perform inference
+            const response = await fetch('/capture-face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_data: dataURL })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                predictionDiv.textContent = `Emotion Predicted: ${result.emotion_prediction}`;
+            } else {
+                console.error('Failed to capture face.');
+            }
+        }
+
+        // Event listener for capture button
+        captureBtn.addEventListener('click', captureFace);
+
+        // Start the camera when the page loads
+        startCamera();
+    </script>
+</body>
+</html>
